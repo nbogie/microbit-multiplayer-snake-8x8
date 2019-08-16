@@ -1,59 +1,3 @@
-let players: Player[] = [];
-function handleCollision() {
-  apples.forEach(a => {
-    players.forEach(p => {
-      if (p.pos.x === a.pos.x && p.pos.y === a.pos.y) {
-        p.score = p.score + 1;
-        radio.sendString("ateApple");
-        renderNativeScreen();
-        a.pos = randomMatrixPos();
-      }
-    });
-  });
-}
-function createApples() {
-  apples = [];
-  apples.push(createApple(1));
-  apples.push(createApple(2));
-  apples.push(createApple(3));
-  apples.push(createApple(4));
-}
-function renderPlayfield() {
-  strip.clear();
-  players.forEach((p, ix) => {
-    strip.setMatrixColor(p.pos.x, p.pos.y, p.color);
-  });
-  apples.forEach(a => {
-    strip.setMatrixColor(a.pos.x, a.pos.y, neopixel.colors(NeoPixelColors.Red));
-  });
-  strip.show();
-}
-radio.onReceivedString(function(receivedString) {
-  led.toggle(0, 0);
-  if (receivedString == "left") {
-    player1.pos.x -= 1;
-    player2.pos.x -= 1;
-  }
-  if (receivedString == "right") {
-    player1.pos.x += 1;
-    player2.pos.x += 1;
-  }
-  if (receivedString == "up") {
-    player1.pos.y += 1;
-    player2.pos.y += 1;
-  }
-  if (receivedString == "down") {
-    player1.pos.y -= 1;
-    player2.pos.y -= 1;
-  } else {
-  }
-  handleCollision();
-  renderPlayfield();
-});
-input.onGesture(Gesture.Shake, function() {
-  strip.clear();
-  strip.show();
-});
 function showScoreOnLEDs(score: number, startColumn: number) {
   [
     [0, 4],
@@ -77,21 +21,108 @@ function renderNativeScreen() {
   showScoreOnLEDs(player1.score, 0);
   showScoreOnLEDs(player2.score, 3);
 }
+
+function respawnApple(apple: Apple) {
+  apple.pos = randomMatrixPos();
+  apple.dieTime = input.runningTime() + 100 * Math.randomRange(20, 40);
+}
+function handleCollision() {
+  apples
+    .filter(a => a.dieTime > input.runningTime())
+    .forEach(a => {
+      players.forEach(p => {
+        if (p.pos.x === a.pos.x && p.pos.y === a.pos.y) {
+          p.score = p.score + 1;
+          radio.sendString("ateApple");
+          renderNativeScreen();
+          respawnApple(a);
+        }
+      });
+    });
+}
+function createApples() {
+  apples = [];
+  apples.push(createApple(1));
+  apples.push(createApple(2));
+  apples.push(createApple(3));
+  apples.push(createApple(4));
+}
+radio.onReceivedString(function(receivedString) {
+  led.toggle(0, 0);
+  let playerNumber: number = parseInt(receivedString.charAt(0));
+  if (playerNumber) {
+    let player = players[playerNumber - 1];
+    switch (receivedString.substr(1)) {
+      case "left":
+        player.pos.x -= 1;
+        break;
+      case "right":
+        player.pos.x += 1;
+        break;
+      case "up":
+        player.pos.y += 1;
+        break;
+      case "down":
+        player.pos.y -= 1;
+        break;
+      default:
+        break;
+    }
+  } else {
+    switch (receivedString) {
+      case "debug":
+        basic.showIcon(IconNames.Ghost);
+        break;
+    }
+  }
+  updateTimedObjects();
+  handleCollision();
+  renderPlayfield();
+});
+function updateTimedObjects() {
+  //revive any apples dead more than n seconds
+  apples.forEach(a => {
+    if (a.dieTime < input.runningTime() - 2000) {
+      respawnApple(a);
+    }
+  });
+}
+
+input.onGesture(Gesture.Shake, function() {
+  strip.clear();
+  strip.show();
+});
+function renderPlayfield() {
+  strip.clear();
+  players.forEach((p, ix) => {
+    strip.setMatrixColor(p.pos.x, p.pos.y, p.color);
+  });
+  apples
+    .filter(a => a.dieTime > input.runningTime())
+    .forEach(a => {
+      strip.setMatrixColor(
+        a.pos.x,
+        a.pos.y,
+        neopixel.colors(NeoPixelColors.Red)
+      );
+    });
+  strip.show();
+}
 input.onButtonPressed(Button.A, function() {
-  radio.sendString("left");
+  radio.sendString("1left");
 });
 input.onButtonPressed(Button.B, function() {
-  radio.sendString("right");
+  radio.sendString("1right");
 });
 input.onPinPressed(TouchPin.P1, function() {
-  radio.sendString("up");
+  radio.sendString("1up");
 });
 input.onPinPressed(TouchPin.P2, function() {
-  radio.sendString("down");
+  radio.sendString("1down");
 });
-
-let strip: neopixel.Strip = null;
 let apples: Apple[] = [];
+let strip: neopixel.Strip = null;
+let players: Player[] = [];
 let numberOfApples = 3;
 function pick(arr: any[]): any {
   return arr[Math.randomRange(0, arr.length - 1)];
@@ -104,13 +135,18 @@ interface Player {
 interface Apple {
   id: number;
   pos: MatrixPos;
+  dieTime: number;
 }
 interface MatrixPos {
   x: number;
   y: number;
 }
 function createApple(id: number): Apple {
-  return { id: id, pos: randomMatrixPos() };
+  return {
+    id: id,
+    pos: randomMatrixPos(),
+    dieTime: input.runningTime() + 2000
+  };
 }
 function randomMatrixPos(): MatrixPos {
   return { x: Math.randomRange(0, 7), y: Math.randomRange(0, 7) };
@@ -133,7 +169,6 @@ let player2: Player = {
 };
 players.push(player1);
 players.push(player2);
-
 renderNativeScreen();
 renderPlayfield();
 radio.sendString("started");
