@@ -3,7 +3,7 @@ function handleCollision() {
   apples.forEach(a => {
     players.forEach(p => {
       if (p.pos.x === a.pos.x && p.pos.y === a.pos.y) {
-        score = score + 1;
+        p.score = p.score + 1;
         radio.sendString("ateApple");
         renderNativeScreen();
         a.pos = randomMatrixPos();
@@ -54,8 +54,28 @@ input.onGesture(Gesture.Shake, function() {
   strip.clear();
   strip.show();
 });
+function showScoreOnLEDs(score: number, startColumn: number) {
+  [
+    [0, 4],
+    [0, 3],
+    [0, 2],
+    [0, 1],
+    [0, 0],
+    [1, 4],
+    [1, 3],
+    [1, 2],
+    [1, 1],
+    [1, 0]
+  ].forEach((pos, ix) => {
+    if (ix < score) {
+      led.plot(pos[0] + startColumn, pos[1]);
+    }
+  });
+}
 function renderNativeScreen() {
-  basic.showNumber(score, 0);
+  basic.clearScreen();
+  showScoreOnLEDs(player1.score, 0);
+  showScoreOnLEDs(player2.score, 3);
 }
 input.onButtonPressed(Button.A, function() {
   radio.sendString("left");
@@ -69,7 +89,7 @@ input.onPinPressed(TouchPin.P1, function() {
 input.onPinPressed(TouchPin.P2, function() {
   radio.sendString("down");
 });
-let score = 0;
+
 let strip: neopixel.Strip = null;
 let apples: Apple[] = [];
 let numberOfApples = 3;
@@ -78,6 +98,7 @@ function pick(arr: any[]): any {
 }
 interface Player {
   pos: MatrixPos;
+  score: number;
   color: number;
 }
 interface Apple {
@@ -102,16 +123,17 @@ strip.setBrightness(110);
 strip.setMatrixWidth(8);
 let player1: Player = {
   pos: randomMatrixPos(),
+  score: 0,
   color: neopixel.colors(NeoPixelColors.Green)
 };
 let player2: Player = {
   pos: randomMatrixPos(),
+  score: 0,
   color: neopixel.colors(NeoPixelColors.Blue)
 };
 players.push(player1);
 players.push(player2);
 
-score = 0;
 renderNativeScreen();
 renderPlayfield();
 radio.sendString("started");
