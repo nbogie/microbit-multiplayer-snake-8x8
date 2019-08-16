@@ -1,11 +1,14 @@
+let players: Player[] = [];
 function handleCollision() {
   apples.forEach(a => {
-    if (player.pos.x === a.pos.x && player.pos.y === a.pos.y) {
-      score = score + 1;
-      radio.sendString("ateApple");
-      renderNativeScreen();
-      a.pos = randomMatrixPos();
-    }
+    players.forEach(p => {
+      if (p.pos.x === a.pos.x && p.pos.y === a.pos.y) {
+        score = score + 1;
+        radio.sendString("ateApple");
+        renderNativeScreen();
+        a.pos = randomMatrixPos();
+      }
+    });
   });
 }
 function createApples() {
@@ -17,11 +20,9 @@ function createApples() {
 }
 function renderPlayfield() {
   strip.clear();
-  strip.setMatrixColor(
-    player.pos.x,
-    player.pos.y,
-    neopixel.colors(NeoPixelColors.Green)
-  );
+  players.forEach((p, ix) => {
+    strip.setMatrixColor(p.pos.x, p.pos.y, p.color);
+  });
   apples.forEach(a => {
     strip.setMatrixColor(a.pos.x, a.pos.y, neopixel.colors(NeoPixelColors.Red));
   });
@@ -30,16 +31,20 @@ function renderPlayfield() {
 radio.onReceivedString(function(receivedString) {
   led.toggle(0, 0);
   if (receivedString == "left") {
-    player.pos.x -= 1;
+    player1.pos.x -= 1;
+    player2.pos.x -= 1;
   }
   if (receivedString == "right") {
-    player.pos.x += 1;
+    player1.pos.x += 1;
+    player2.pos.x += 1;
   }
   if (receivedString == "up") {
-    player.pos.y += 1;
+    player1.pos.y += 1;
+    player2.pos.y += 1;
   }
   if (receivedString == "down") {
-    player.pos.y -= 1;
+    player1.pos.y -= 1;
+    player2.pos.y -= 1;
   } else {
   }
   handleCollision();
@@ -66,7 +71,6 @@ input.onPinPressed(TouchPin.P2, function() {
 });
 let score = 0;
 let strip: neopixel.Strip = null;
-let player: Player = null;
 let apples: Apple[] = [];
 let numberOfApples = 3;
 function pick(arr: any[]): any {
@@ -74,6 +78,7 @@ function pick(arr: any[]): any {
 }
 interface Player {
   pos: MatrixPos;
+  color: number;
 }
 interface Apple {
   id: number;
@@ -95,7 +100,17 @@ radio.setGroup(88);
 strip = neopixel.create(DigitalPin.P0, 64, NeoPixelMode.RGB);
 strip.setBrightness(110);
 strip.setMatrixWidth(8);
-player = { pos: randomMatrixPos() };
+let player1: Player = {
+  pos: randomMatrixPos(),
+  color: neopixel.colors(NeoPixelColors.Green)
+};
+let player2: Player = {
+  pos: randomMatrixPos(),
+  color: neopixel.colors(NeoPixelColors.Blue)
+};
+players.push(player1);
+players.push(player2);
+
 score = 0;
 renderNativeScreen();
 renderPlayfield();
