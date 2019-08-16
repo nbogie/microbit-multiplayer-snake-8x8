@@ -1,5 +1,6 @@
 input.onButtonPressed(Button.A, function() {
   radio.sendString(playerNumber + (isHorizontals ? "left" : "up"));
+  radio.sendString("rotated");
 });
 input.onButtonPressed(Button.B, function() {
   radio.sendString(playerNumber + (isHorizontals ? "right" : "down"));
@@ -17,6 +18,14 @@ radio.onReceivedString(function(receivedString) {
   }
   if (receivedString == "started") {
     music.beginMelody(music.builtInMelody(Melodies.JumpUp), MelodyOptions.Once);
+  }
+  if (receivedString == "rotated") {
+    for (let i = 0; i < 5; i++) {
+      music.playTone(
+        pick([Note.B3, Note.Bb3, Note.A3, Note.GSharp3, Note.G3]),
+        50
+      );
+    }
   } else {
   }
 });
