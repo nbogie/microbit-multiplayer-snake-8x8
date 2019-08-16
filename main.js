@@ -1,3 +1,6 @@
+function toggleControlInterpretation() {
+  controlInterpretationNormal = !controlInterpretationNormal;
+}
 function showScoreOnLEDs(score: number, startColumn: number) {
   [
     [0, 4],
@@ -47,23 +50,44 @@ function createApples() {
   apples.push(createApple(3));
   apples.push(createApple(4));
 }
+
+function moveDown(p: Player) {
+  p.pos.y -= 1;
+}
+function moveUp(p: Player) {
+  p.pos.y += 1;
+}
+
+function moveLeft(p: Player) {
+  p.pos.x -= 1;
+}
+
+function moveRight(p: Player) {
+  p.pos.x += 1;
+}
+
 radio.onReceivedString(function(receivedString) {
+  if (timeForInputSwitch < input.runningTime()) {
+    toggleControlInterpretation();
+    radio.sendString("rotated");
+    timeForInputSwitch = input.runningTime() + 10000;
+  }
   led.toggle(0, 0);
   let playerNumber: number = parseInt(receivedString.charAt(0));
   if (playerNumber) {
     let player = players[playerNumber - 1];
     switch (receivedString.substr(1)) {
       case "left":
-        player.pos.x -= 1;
+        controlInterpretationNormal ? moveLeft(player) : moveUp(player);
         break;
       case "right":
-        player.pos.x += 1;
+        controlInterpretationNormal ? moveRight(player) : moveDown(player);
         break;
       case "up":
-        player.pos.y += 1;
+        controlInterpretationNormal ? moveUp(player) : moveLeft(player);
         break;
       case "down":
-        player.pos.y -= 1;
+        controlInterpretationNormal ? moveDown(player) : moveRight(player);
         break;
       default:
         break;
@@ -167,6 +191,8 @@ let player2: Player = {
   score: 0,
   color: neopixel.colors(NeoPixelColors.Blue)
 };
+let timeForInputSwitch: number = input.runningTime() + 10000;
+let controlInterpretationNormal = true;
 players.push(player1);
 players.push(player2);
 renderNativeScreen();
