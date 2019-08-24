@@ -1,6 +1,24 @@
+/*
+sent messages:
+=============
+started
+ateApple
+rotated
+gameOver
+p1Won
+p2Won
+
+received messages:
+==================
+start
+1left
+1right
+1up
+1down
+*/
+
 input.onButtonPressed(Button.A, function() {
   radio.sendString(playerNumber + (isHorizontals ? "left" : "up"));
-  radio.sendString("rotated");
 });
 input.onButtonPressed(Button.B, function() {
   radio.sendString(playerNumber + (isHorizontals ? "right" : "down"));
