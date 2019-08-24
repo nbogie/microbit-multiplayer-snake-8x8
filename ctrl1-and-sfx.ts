@@ -23,6 +23,9 @@ input.onButtonPressed(Button.A, function() {
 input.onButtonPressed(Button.B, function() {
   radio.sendString(playerNumber + (isHorizontals ? "right" : "down"));
 });
+input.onButtonPressed(Button.AB, function() {
+  radio.sendString("start");
+});
 input.onPinPressed(TouchPin.P2, function() {
   radio.sendString(playerNumber + (isHorizontals ? "up" : "left"));
 });
@@ -34,6 +37,21 @@ radio.onReceivedString(function(receivedString) {
   if (receivedString == "ateApple") {
     music.playTone(pick([Note.C5, Note.D5, Note.E5, Note.G5, Note.A5]), 50);
   }
+  if (receivedString == "gameOver") {
+  }
+  if (receivedString == "p1Won") {
+    music.beginMelody(
+      music.builtInMelody(Melodies.PowerUp),
+      MelodyOptions.Once
+    );
+  }
+  if (receivedString == "p2Won") {
+    music.beginMelody(
+      music.builtInMelody(Melodies.PowerUp),
+      MelodyOptions.Once
+    );
+  }
+
   if (receivedString == "started") {
     music.beginMelody(music.builtInMelody(Melodies.JumpUp), MelodyOptions.Once);
   }
