@@ -50,23 +50,38 @@ function createApples() {
   apples.push(createApple(3));
   apples.push(createApple(4));
 }
-
-function moveDown(p: Player) {
-  p.pos.y -= 1;
+function inBounds(pos: MatrixPos) {
+  return pos.x >= 0 && pos.x < 8 && pos.y >= 0 && pos.y < 8;
 }
-function moveUp(p: Player) {
-  p.pos.y += 1;
+function incrementOrReset(pos: MatrixPos, fn: any) {
+  const candidatePos = { x: pos.x, y: pos.y };
+  fn(candidatePos);
+  if (inBounds(candidatePos)) {
+    pos.x = candidatePos.x;
+    pos.y = candidatePos.y;
+    return true;
+  } else {
+    return false;
+  }
 }
 
-function moveLeft(p: Player) {
-  p.pos.x -= 1;
+function tryToMoveDown(p: Player) {
+  return incrementOrReset(p.pos, (p: MatrixPos) => (p.y -= 1));
 }
 
-function moveRight(p: Player) {
-  p.pos.x += 1;
+function tryToMoveUp(p: Player) {
+  return incrementOrReset(p.pos, (p: MatrixPos) => (p.y += 1));
 }
 
-radio.onReceivedString(function(receivedString) {
+function tryToMoveLeft(p: Player) {
+  return incrementOrReset(p.pos, (p: MatrixPos) => (p.x -= 1));
+}
+
+function tryToMoveRight(p: Player) {
+  return incrementOrReset(p.pos, (p: MatrixPos) => (p.x += 1));
+}
+
+radio.onReceivedString(function (receivedString) {
   if (timeForInputSwitch < input.runningTime()) {
     toggleControlInterpretation();
     radio.sendString("rotated");
@@ -76,22 +91,33 @@ radio.onReceivedString(function(receivedString) {
   let playerNumber: number = parseInt(receivedString.charAt(0));
   if (playerNumber) {
     let player = players[playerNumber - 1];
+    let moved;
+    player.outOfBoundsAttempted = false;
     switch (receivedString.substr(1)) {
       case "left":
-        controlInterpretationNormal ? moveLeft(player) : moveUp(player);
+        moved = controlInterpretationNormal
+          ? tryToMoveLeft(player)
+          : tryToMoveUp(player);
         break;
       case "right":
-        controlInterpretationNormal ? moveRight(player) : moveDown(player);
+        moved = controlInterpretationNormal
+          ? tryToMoveRight(player)
+          : tryToMoveDown(player);
         break;
       case "up":
-        controlInterpretationNormal ? moveUp(player) : moveLeft(player);
+        moved = controlInterpretationNormal
+          ? tryToMoveUp(player)
+          : tryToMoveLeft(player);
         break;
       case "down":
-        controlInterpretationNormal ? moveDown(player) : moveRight(player);
+        moved = controlInterpretationNormal
+          ? tryToMoveDown(player)
+          : tryToMoveRight(player);
         break;
       default:
         break;
     }
+    player.outOfBoundsAttempted = !moved;
   } else {
     switch (receivedString) {
       case "debug":
@@ -112,14 +138,14 @@ function updateTimedObjects() {
   });
 }
 
-input.onGesture(Gesture.Shake, function() {
+input.onGesture(Gesture.Shake, function () {
   strip.clear();
   strip.show();
 });
 function renderPlayfield() {
   strip.clear();
   players.forEach((p, ix) => {
-    strip.setMatrixColor(p.pos.x, p.pos.y, p.color);
+    strip.setMatrixColor(p.pos.x, p.pos.y, p.outOfBoundsAttempted ? NeoPixelColors.White : p.color);
   });
   apples
     .filter(a => a.dieTime > input.runningTime())
@@ -132,16 +158,16 @@ function renderPlayfield() {
     });
   strip.show();
 }
-input.onButtonPressed(Button.A, function() {
+input.onButtonPressed(Button.A, function () {
   radio.sendString("1left");
 });
-input.onButtonPressed(Button.B, function() {
+input.onButtonPressed(Button.B, function () {
   radio.sendString("1right");
 });
-input.onPinPressed(TouchPin.P1, function() {
+input.onPinPressed(TouchPin.P1, function () {
   radio.sendString("1up");
 });
-input.onPinPressed(TouchPin.P2, function() {
+input.onPinPressed(TouchPin.P2, function () {
   radio.sendString("1down");
 });
 let apples: Apple[] = [];
@@ -155,6 +181,7 @@ interface Player {
   pos: MatrixPos;
   score: number;
   color: number;
+  outOfBoundsAttempted: boolean;
 }
 interface Apple {
   id: number;
@@ -184,12 +211,14 @@ strip.setMatrixWidth(8);
 let player1: Player = {
   pos: randomMatrixPos(),
   score: 0,
-  color: neopixel.colors(NeoPixelColors.Green)
+  color: neopixel.colors(NeoPixelColors.Green),
+  outOfBoundsAttempted: false
 };
 let player2: Player = {
   pos: randomMatrixPos(),
   score: 0,
-  color: neopixel.colors(NeoPixelColors.Blue)
+  color: neopixel.colors(NeoPixelColors.Blue),
+  outOfBoundsAttempted: false
 };
 let timeForInputSwitch: number = input.runningTime() + 10000;
 let controlInterpretationNormal = true;
