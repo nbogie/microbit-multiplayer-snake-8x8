@@ -157,12 +157,15 @@ radio.onReceivedString(function(receivedString) {
   }
   updateTimedObjects();
   handlePickups();
+  renderPlayfield();
+  handleGameOver();
+});
+function handleGameOver() {
   if (isGameOver()) {
     radio.sendString("gameOver");
     radio.sendString(player1.score > player2.score ? "p1Won" : "p2Won");
   }
-  renderPlayfield();
-});
+}
 function updateTimedObjects() {
   //revive any apples dead more than n seconds
   apples.forEach(a => {
