@@ -110,8 +110,12 @@ function tryToMoveRight(p: Player) {
 }
 
 radio.onReceivedString(function(receivedString) {
-  if (isGameOver() && receivedString !== "start") {
-    return;
+  if (isGameOver()) {
+    if (receivedString === "start") {
+      control.reset();
+    } else {
+      return;
+    }
   }
   if (timeForInputSwitch < input.runningTime()) {
     toggleControlInterpretation();
