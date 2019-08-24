@@ -1,3 +1,20 @@
+/*
+sent messages:
+started
+ateApple
+rotated
+gameOver
+p1Won
+p2Won
+
+received messages:
+start
+1left
+1right
+1up
+1down
+*/
+
 function toggleControlInterpretation() {
   controlInterpretationNormal = !controlInterpretationNormal;
 }
@@ -21,24 +38,34 @@ function showScoreOnLEDs(score: number, startColumn: number) {
 }
 function renderNativeScreen() {
   basic.clearScreen();
-  showScoreOnLEDs(player1.score, 0);
-  showScoreOnLEDs(player2.score, 3);
+  if (isGameOver()) {
+    basic.showString(player1.score > player2.score ? "1" : "2");
+  } else {
+    showScoreOnLEDs(player1.score, 0);
+    showScoreOnLEDs(player2.score, 3);
+  }
 }
 
 function respawnApple(apple: Apple) {
   apple.pos = randomMatrixPos();
   apple.dieTime = input.runningTime() + 100 * Math.randomRange(20, 40);
 }
-function handleCollision() {
+function isGameOver() {
+  return players.some(p => p.score >= targetScore);
+}
+
+function handlePickups() {
   apples
     .filter(a => a.dieTime > input.runningTime())
     .forEach(a => {
       players.forEach(p => {
         if (p.pos.x === a.pos.x && p.pos.y === a.pos.y) {
           p.score = p.score + 1;
-          radio.sendString("ateApple");
+          if (!isGameOver()) {
+            radio.sendString("ateApple");
+            respawnApple(a);
+          }
           renderNativeScreen();
-          respawnApple(a);
         }
       });
     });
@@ -81,7 +108,10 @@ function tryToMoveRight(p: Player) {
   return incrementOrReset(p.pos, (p: MatrixPos) => (p.x += 1));
 }
 
-radio.onReceivedString(function (receivedString) {
+radio.onReceivedString(function(receivedString) {
+  if (isGameOver() && receivedString !== "start") {
+    return;
+  }
   if (timeForInputSwitch < input.runningTime()) {
     toggleControlInterpretation();
     radio.sendString("rotated");
@@ -126,7 +156,11 @@ radio.onReceivedString(function (receivedString) {
     }
   }
   updateTimedObjects();
-  handleCollision();
+  handlePickups();
+  if (isGameOver()) {
+    radio.sendString("gameOver");
+    radio.sendString(player1.score > player2.score ? "p1Won" : "p2Won");
+  }
   renderPlayfield();
 });
 function updateTimedObjects() {
@@ -138,14 +172,18 @@ function updateTimedObjects() {
   });
 }
 
-input.onGesture(Gesture.Shake, function () {
+input.onGesture(Gesture.Shake, function() {
   strip.clear();
   strip.show();
 });
 function renderPlayfield() {
   strip.clear();
   players.forEach((p, ix) => {
-    strip.setMatrixColor(p.pos.x, p.pos.y, p.outOfBoundsAttempted ? NeoPixelColors.White : p.color);
+    strip.setMatrixColor(
+      p.pos.x,
+      p.pos.y,
+      p.outOfBoundsAttempted ? NeoPixelColors.White : p.color
+    );
   });
   apples
     .filter(a => a.dieTime > input.runningTime())
@@ -158,16 +196,16 @@ function renderPlayfield() {
     });
   strip.show();
 }
-input.onButtonPressed(Button.A, function () {
+input.onButtonPressed(Button.A, function() {
   radio.sendString("1left");
 });
-input.onButtonPressed(Button.B, function () {
+input.onButtonPressed(Button.B, function() {
   radio.sendString("1right");
 });
-input.onPinPressed(TouchPin.P1, function () {
+input.onPinPressed(TouchPin.P1, function() {
   radio.sendString("1up");
 });
-input.onPinPressed(TouchPin.P2, function () {
+input.onPinPressed(TouchPin.P2, function() {
   radio.sendString("1down");
 });
 let apples: Apple[] = [];
@@ -208,6 +246,8 @@ radio.setGroup(88);
 strip = neopixel.create(DigitalPin.P0, 64, NeoPixelMode.RGB);
 strip.setBrightness(110);
 strip.setMatrixWidth(8);
+let targetScore = 4;
+
 let player1: Player = {
   pos: randomMatrixPos(),
   score: 0,
