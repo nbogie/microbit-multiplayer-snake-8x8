@@ -1,5 +1,6 @@
 /*
 sent messages:
+=============
 started
 ateApple
 rotated
@@ -8,6 +9,7 @@ p1Won
 p2Won
 
 received messages:
+==================
 start
 1left
 1right
@@ -70,12 +72,11 @@ function handlePickups() {
       });
     });
 }
-function createApples() {
+function createApples(num: Number) {
   apples = [];
-  apples.push(createApple(1));
-  apples.push(createApple(2));
-  apples.push(createApple(3));
-  apples.push(createApple(4));
+  for (let i = 0; i < num; i++) {
+    apples.push(createApple(i));
+  }
 }
 function inBounds(pos: MatrixPos) {
   return pos.x >= 0 && pos.x < 8 && pos.y >= 0 && pos.y < 8;
@@ -181,13 +182,6 @@ input.onGesture(Gesture.Shake, function() {
 });
 function renderPlayfield() {
   strip.clear();
-  players.forEach((p, ix) => {
-    strip.setMatrixColor(
-      p.pos.x,
-      p.pos.y,
-      p.outOfBoundsAttempted ? NeoPixelColors.White : p.color
-    );
-  });
   apples
     .filter(a => a.dieTime > input.runningTime())
     .forEach(a => {
@@ -197,6 +191,13 @@ function renderPlayfield() {
         neopixel.colors(NeoPixelColors.Red)
       );
     });
+  players.forEach((p, ix) => {
+    strip.setMatrixColor(
+      p.pos.x,
+      p.pos.y,
+      p.outOfBoundsAttempted ? NeoPixelColors.White : p.color
+    );
+  });
   strip.show();
 }
 input.onButtonPressed(Button.A, function() {
@@ -243,7 +244,11 @@ function createApple(id: number): Apple {
 function randomMatrixPos(): MatrixPos {
   return { x: Math.randomRange(0, 7), y: Math.randomRange(0, 7) };
 }
-createApples();
+let maxNumApples = 4;
+if (input.buttonIsPressed(Button.A)) {
+  maxNumApples = 1;
+}
+createApples(maxNumApples);
 basic.showString("S");
 radio.setGroup(88);
 strip = neopixel.create(DigitalPin.P0, 64, NeoPixelMode.RGB);
