@@ -254,7 +254,7 @@ radio.setGroup(88);
 strip = neopixel.create(DigitalPin.P0, 64, NeoPixelMode.RGB);
 strip.setBrightness(110);
 strip.setMatrixWidth(8);
-let targetScore = 4;
+let targetScore = 10;
 
 let player1: Player = {
   pos: randomMatrixPos(),
